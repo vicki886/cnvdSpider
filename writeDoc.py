@@ -3,8 +3,12 @@
 
 from docxtpl import DocxTemplate
 import os
-from docx.shared import Pt, Inches, Cm
+from docx.shared import Pt, Inches, Cm, Length
 from docx.oxml.ns import qn
+from docx.enum.text import WD_PARAGRAPH_ALIGNMENT,WD_LINE_SPACING
+from docx.enum.table import WD_CELL_VERTICAL_ALIGNMENT
+from docx.enum.dml import MSO_THEME_COLOR_INDEX
+import docx
 import datetime
 
 def getDir():
@@ -59,18 +63,34 @@ class doc(object):
                     table.columns[1].width = Cm(12)
                     table.cell(j - 1, 0).width = Cm(3)   #设置单元格宽度
                     table.cell(j - 1, 1).width = Cm(12)
+                    #table.alignment=WD_TABLE_ALIGNMENT.RIGHT 设置对齐方式
+
                     keyCell = table.cell(j-1, 0)            #表格赋值
                     valueCell = table.cell(j-1, 1)
 
                     #设置key单元格字体与字体大小
-                    keyRun = keyCell.paragraphs[0].add_run(key)
-                    keyRun.font.name = '宋体'  # 设置字体
-                    keyRun.font.size = Pt(12)  # 设置字号为小四
+                    key_paragraph = keyCell.paragraphs[0]
+                    #keyRun = keyCell.paragraphs[0].add_run(key)
+                    keyRun = key_paragraph.add_run(key)
+                    keyRun.font.name = u'微软雅黑'  # 设置字体
+                    keyRun._element.rPr.rFonts.set(qn('w:eastAsia'), u'微软雅黑')
+                    keyRun.font.size = Pt(10.5)  # 设置字号为五号
+                    key_paragraph.paragraph_format.line_spacing = WD_LINE_SPACING.ONE_POINT_FIVE#设置1.5倍行间距
+                    key_paragraph.paragraph_format.alignment = WD_PARAGRAPH_ALIGNMENT.RIGHT #设置水平对齐方式右对齐
+                    keyCell.vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
 
                     #设置value单元格字体与字体大小
-                    valueRun = valueCell.paragraphs[0].add_run(value)  # 填入的内容
-                    valueRun.font.name = '宋体'  # 设置字体
-                    valueRun.font.size = Pt(12)  # 设置字号为小四
+                    val_paragraph = valueCell.paragraphs[0]
+
+                    #valueRun = valueCell.paragraphs[0].add_run(value)  # 填入的内容
+
+                    valueRun = val_paragraph.add_run(value)
+                    valueRun.font.name = u'微软雅黑'  # 设置字体
+                    valueRun.font.size = Pt(10.5)  # 设置字号为五号
+                    valueRun._element.rPr.rFonts.set(qn('w:eastAsia'), u'微软雅黑')
+                    val_paragraph.paragraph_format.line_spacing_rule = WD_LINE_SPACING.ONE_POINT_FIVE#设置1.5倍行间距
+                    val_paragraph.paragraph_format.alignment = WD_PARAGRAPH_ALIGNMENT.LEFT#设置水平对齐方式左对齐
+                    valueCell.vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
                     #keyCell.text = key
                     #valueCell.text = value
                     #print(key,value)
@@ -109,3 +129,35 @@ class doc(object):
             return self.devicevul
         else:
             return self.sysvul
+
+    def add_hyperlink(self,paragraph, text, url):
+        # This gets access to the document.xml.rels file and gets a new relation id value
+        part = paragraph.part
+        r_id = part.relate_to(url, docx.opc.constants.RELATIONSHIP_TYPE.HYPERLINK, is_external=True)
+
+        # Create the w:hyperlink tag and add needed values
+        hyperlink = docx.oxml.shared.OxmlElement('w:hyperlink')
+        hyperlink.set(docx.oxml.shared.qn('r:id'), r_id, )
+
+        # Create a w:r element and a new w:rPr element
+        new_run = docx.oxml.shared.OxmlElement('w:r')
+        rPr = docx.oxml.shared.OxmlElement('w:rPr')
+
+        # Join all the xml elements together add add the required text to the w:r element
+        new_run.append(rPr)
+        new_run.text = text
+        hyperlink.append(new_run)
+
+        # Create a new Run object and add the hyperlink into it
+        r = paragraph.add_run ()
+        r.font.name = u'微软雅黑'  # 设置字体
+        r.font.size = Pt(10.5)  # 设置字号为五号
+        r._element.rPr.rFonts.set(qn('w:eastAsia'), u'微软雅黑')
+        r._r.append (hyperlink)
+
+        # A workaround for the lack of a hyperlink style (doesn't go purple after using the link)
+        # Delete this if using a template that has the hyperlink style in it
+        r.font.color.theme_color = MSO_THEME_COLOR_INDEX.HYPERLINK
+        r.font.underline = True
+
+        return hyperlink

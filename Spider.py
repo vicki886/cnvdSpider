@@ -50,7 +50,7 @@ class Spider(object):
             tmp = i*max
             url = "https://www.cnvd.org.cn/flaw/typeResult?typeId="+type+"&max="+str(max)+"&offset=%s" %tmp
             html,code = parse(url)
-            retry_count = 6
+            retry_count = 10
             while code != 200 and retry_count > 0:
                 second = random.randint(20, 30)
                 print("被防火墙拦截延迟%ss,网页状态码为%s" % (second, str(code)))
@@ -72,7 +72,7 @@ class Spider(object):
         while self.urlManager.has_url():
             url = self.urlManager.get_url()
             html,code = parse(url)
-            retry_count = 6
+            retry_count = 10
             while code != 200 and retry_count > 0:
                 second = random.randint(20, 30)
                 print("被防火墙拦截延迟%ss,网页状态码为%s." % (second, str(code)))
